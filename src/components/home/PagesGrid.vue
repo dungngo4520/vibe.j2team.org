@@ -33,7 +33,18 @@ import { padIndex } from '@/data/homepage'
         </h3>
         <p class="mt-2 text-sm text-text-secondary">{{ page.description }}</p>
         <p class="mt-4 text-xs text-text-dim font-display tracking-wide">
-          bởi {{ page.author }}
+          bởi
+          <a
+            v-if="page.facebook"
+            :href="page.facebook"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-accent-coral hover:underline"
+            @click.stop
+          >
+            {{ page.author }}
+          </a>
+          <span v-else>{{ page.author }}</span>
         </p>
       </RouterLink>
 

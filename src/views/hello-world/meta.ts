@@ -4,6 +4,7 @@ const meta: PageMeta = {
   name: 'Hello World',
   description: 'Trang mẫu đầu tiên - bắt đầu từ đây!',
   author: 'J2TEAM',
+  facebook: 'https://www.facebook.com/groups/j2team.community',
 }
 
 export default meta
