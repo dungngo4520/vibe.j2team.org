@@ -20,6 +20,7 @@
     "prepare": "simple-git-hooks"
   },
   "dependencies": {
+    "@svg-maps/world": "^2.0.0",
     "@unhead/vue": "^2.1.10",
     "pinia": "^3.0.4",
     "vue": "^3.5.29",
