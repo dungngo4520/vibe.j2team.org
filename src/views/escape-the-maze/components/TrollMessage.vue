@@ -1,32 +1,32 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
-import { useLanguage } from "../composables/useLanguage";
+import { ref, onMounted, onUnmounted } from 'vue'
+import { useLanguage } from '../composables/useLanguage'
 
 defineProps<{
-  visible: boolean;
-}>();
+  visible: boolean
+}>()
 
-const { t } = useLanguage();
-const currentMessage = ref("");
+const { t } = useLanguage()
+const currentMessage = ref('')
 
 function getRandomMessage() {
-  const messages = t.value.trollMessages;
-  const randomIndex = Math.floor(Math.random() * messages.length);
-  currentMessage.value = messages[randomIndex] || "";
+  const messages = t.value.trollMessages
+  const randomIndex = Math.floor(Math.random() * messages.length)
+  currentMessage.value = messages[randomIndex] || ''
 }
 
-let messageInterval: number | null = null;
+let messageInterval: number | null = null
 
 onMounted(() => {
-  getRandomMessage();
-  messageInterval = window.setInterval(getRandomMessage, 5000);
-});
+  getRandomMessage()
+  messageInterval = window.setInterval(getRandomMessage, 5000)
+})
 
 onUnmounted(() => {
   if (messageInterval) {
-    clearInterval(messageInterval);
+    clearInterval(messageInterval)
   }
-});
+})
 </script>
 
 <template>

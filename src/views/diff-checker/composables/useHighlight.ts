@@ -20,7 +20,11 @@ const JS_RULES: Array<{ pattern: RegExp; cls: string }> = [
 ]
 
 /** Get first matching rule at position. Rules ordered by priority. */
-function matchAt(line: string, pos: number, rules: Array<{ pattern: RegExp; cls: string }>): { end: number; cls: string } | null {
+function matchAt(
+  line: string,
+  pos: number,
+  rules: Array<{ pattern: RegExp; cls: string }>,
+): { end: number; cls: string } | null {
   const rest = line.slice(pos)
   for (const { pattern, cls } of rules) {
     const m = pattern.exec(rest)

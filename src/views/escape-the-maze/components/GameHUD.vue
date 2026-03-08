@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { useLanguage } from "../composables/useLanguage";
+import { useLanguage } from '../composables/useLanguage'
 
 defineProps<{
-  time: string;
-  steps: number;
-  bestTime?: number;
-}>();
+  time: string
+  steps: number
+  bestTime?: number
+}>()
 
-const { t } = useLanguage();
+const { t } = useLanguage()
 </script>
 
 <template>

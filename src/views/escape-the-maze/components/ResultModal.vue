@@ -1,19 +1,19 @@
 <script setup lang="ts">
-import type { GameStats, Difficulty } from "../types";
-import { useLanguage } from "../composables/useLanguage";
+import type { GameStats, Difficulty } from '../types'
+import { useLanguage } from '../composables/useLanguage'
 
 defineProps<{
-  stats: GameStats;
-  difficulty: Difficulty;
-  isNewRecord: boolean;
-}>();
+  stats: GameStats
+  difficulty: Difficulty
+  isNewRecord: boolean
+}>()
 
 const emit = defineEmits<{
-  playAgain: [];
-  changeDifficulty: [];
-}>();
+  playAgain: []
+  changeDifficulty: []
+}>()
 
-const { t } = useLanguage();
+const { t } = useLanguage()
 </script>
 
 <template>

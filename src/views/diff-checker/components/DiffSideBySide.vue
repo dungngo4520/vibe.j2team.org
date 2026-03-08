@@ -31,8 +31,12 @@ function rightTotalLines(): number {
     <!-- Panel headers -->
     <div class="flex items-stretch border border-border-default bg-bg-surface">
       <!-- Left header -->
-      <div class="flex flex-1 items-center justify-between gap-3 border-r border-border-default px-4 py-2">
-        <span class="flex items-center gap-1.5 font-display text-sm font-semibold text-accent-coral">
+      <div
+        class="flex flex-1 items-center justify-between gap-3 border-r border-border-default px-4 py-2"
+      >
+        <span
+          class="flex items-center gap-1.5 font-display text-sm font-semibold text-accent-coral"
+        >
           <span class="text-base">−</span>
           {{ deletions }} removals
         </span>
@@ -118,9 +122,7 @@ function rightTotalLines(): number {
             />
           </tr>
           <tr v-if="panels.rows.length === 0">
-            <td class="px-3 py-4 text-center text-text-dim" colspan="4">
-              Không có sự khác biệt
-            </td>
+            <td class="px-3 py-4 text-center text-text-dim" colspan="4">Không có sự khác biệt</td>
           </tr>
         </tbody>
       </table>

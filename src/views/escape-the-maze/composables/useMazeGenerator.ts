@@ -1,9 +1,9 @@
-import { type Cell } from "../types";
+import { type Cell } from '../types'
 
 function createEmptyGrid(size: number): Cell[][] {
-  const grid: Cell[][] = [];
+  const grid: Cell[][] = []
   for (let y = 0; y < size; y++) {
-    grid[y] = [];
+    grid[y] = []
     for (let x = 0; x < size; x++) {
       grid[y]![x] = {
         x,
@@ -15,71 +15,71 @@ function createEmptyGrid(size: number): Cell[][] {
           bottom: true,
           left: true,
         },
-      };
+      }
     }
   }
-  return grid;
+  return grid
 }
 
 function getUnvisitedNeighbors(grid: Cell[][], cell: Cell): Cell[] {
-  const neighbors: Cell[] = [];
-  const { x, y } = cell;
-  const size = grid.length;
+  const neighbors: Cell[] = []
+  const { x, y } = cell
+  const size = grid.length
 
-  if (y > 0 && !grid[y - 1]![x]!.visited) neighbors.push(grid[y - 1]![x]!); // top
-  if (x < size - 1 && !grid[y]![x + 1]!.visited) neighbors.push(grid[y]![x + 1]!); // right
-  if (y < size - 1 && !grid[y + 1]![x]!.visited) neighbors.push(grid[y + 1]![x]!); // bottom
-  if (x > 0 && !grid[y]![x - 1]!.visited) neighbors.push(grid[y]![x - 1]!); // left
+  if (y > 0 && !grid[y - 1]![x]!.visited) neighbors.push(grid[y - 1]![x]!) // top
+  if (x < size - 1 && !grid[y]![x + 1]!.visited) neighbors.push(grid[y]![x + 1]!) // right
+  if (y < size - 1 && !grid[y + 1]![x]!.visited) neighbors.push(grid[y + 1]![x]!) // bottom
+  if (x > 0 && !grid[y]![x - 1]!.visited) neighbors.push(grid[y]![x - 1]!) // left
 
-  return neighbors;
+  return neighbors
 }
 
 function removeWalls(current: Cell, next: Cell): void {
-  const dx = next.x - current.x;
-  const dy = next.y - current.y;
+  const dx = next.x - current.x
+  const dy = next.y - current.y
 
   if (dx === 1) {
-    current.walls.right = false;
-    next.walls.left = false;
+    current.walls.right = false
+    next.walls.left = false
   } else if (dx === -1) {
-    current.walls.left = false;
-    next.walls.right = false;
+    current.walls.left = false
+    next.walls.right = false
   } else if (dy === 1) {
-    current.walls.bottom = false;
-    next.walls.top = false;
+    current.walls.bottom = false
+    next.walls.top = false
   } else if (dy === -1) {
-    current.walls.top = false;
-    next.walls.bottom = false;
+    current.walls.top = false
+    next.walls.bottom = false
   }
 }
 
 export function useMazeGenerator() {
   function generateMaze(size: number): Cell[][] {
-    const grid = createEmptyGrid(size);
-    const stack: Cell[] = [];
-    let current = grid[0]![0]!;
-    current.visited = true;
+    const grid = createEmptyGrid(size)
+    const stack: Cell[] = []
+    let current = grid[0]![0]!
+    current.visited = true
 
     while (true) {
-      const unvisited = getUnvisitedNeighbors(grid, current);
+      const unvisited = getUnvisitedNeighbors(grid, current)
 
       if (unvisited.length > 0) {
-        const next = unvisited[Math.floor(Math.random() * unvisited.length)]!;
-        stack.push(current);
-        removeWalls(current, next);
-        next.visited = true;
-        current = next;
+        const next = unvisited[Math.floor(Math.random() * unvisited.length)]!
+        stack.push(current)
+        removeWalls(current, next)
+        next.visited = true
+        current = next
       } else if (stack.length > 0) {
-        current = stack.pop()!;
+        current = stack.pop()!
       } else {
-        break;
+        break
       }
     }
 
-    return grid;
+    return grid
   }
 
   return {
     generateMaze,
-  };
+  }
 }

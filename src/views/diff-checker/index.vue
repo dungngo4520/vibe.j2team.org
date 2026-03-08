@@ -43,11 +43,10 @@ function swapTexts() {
   <div class="min-h-screen bg-bg-deep text-text-primary font-body px-4 py-8">
     <div class="mx-auto max-w-6xl">
       <header class="mb-8 animate-fade-up">
-        <h1 class="font-display text-4xl font-bold text-accent-coral sm:text-5xl">
-          Diff Checker
-        </h1>
+        <h1 class="font-display text-4xl font-bold text-accent-coral sm:text-5xl">Diff Checker</h1>
         <p class="mt-2 text-text-secondary">
-          Dán hai đoạn văn bản hoặc code vào, xem ngay sự khác biệt. Miễn cài đặt, chạy trên trình duyệt — không lưu hay gửi dữ liệu đi đâu.
+          Dán hai đoạn văn bản hoặc code vào, xem ngay sự khác biệt. Miễn cài đặt, chạy trên trình
+          duyệt — không lưu hay gửi dữ liệu đi đâu.
         </p>
         <RouterLink
           to="/"
@@ -96,7 +95,8 @@ function swapTexts() {
         v-if="isLargeInput"
         class="mt-6 animate-fade-up animate-delay-4 border border-accent-amber/40 bg-accent-amber/10 px-4 py-3 text-sm text-text-secondary"
       >
-        ⚠ Nội dung quá lớn — kết quả so sánh có thể kém chính xác hơn do dùng thuật toán đơn giản thay vì LCS.
+        ⚠ Nội dung quá lớn — kết quả so sánh có thể kém chính xác hơn do dùng thuật toán đơn giản
+        thay vì LCS.
       </div>
 
       <div class="mt-6 animate-fade-up animate-delay-4">

@@ -77,25 +77,29 @@ async function castOracle() {
     coinResults.value = [null, null, null]
 
     // For each of the 3 coins: show gif 1s then reveal result
-      for (let coinIndex = 0; coinIndex < 3; coinIndex += 1) {
-        coinSpinning.value[coinIndex] = true
-        // show icon spin for 1s
-        await sleep(1000)
-        coinSpinning.value[coinIndex] = false
-
-        // determine coin result (0 = Âm, 1 = Dương)
-        const coin = Math.random() > 0.5 ? 1 : 0
-        // set result (this will update the displayed coin face)
-        coinResults.value = [...coinResults.value.slice(0, coinIndex), coin, ...coinResults.value.slice(coinIndex + 1)]
-      }
-
-      // small pause (1s) before saving the line to let users see final coin states
+    for (let coinIndex = 0; coinIndex < 3; coinIndex += 1) {
+      coinSpinning.value[coinIndex] = true
+      // show icon spin for 1s
       await sleep(1000)
+      coinSpinning.value[coinIndex] = false
 
-      // derive line from coinResults: majority heads => 1 (Dương), else 0 (Âm)
-      const sum = coinResults.value.reduce<number>((s, v) => s + (v ?? 0), 0)
-      const line = sum >= 2 ? 1 : 0
-      lines.value = [...lines.value, line]
+      // determine coin result (0 = Âm, 1 = Dương)
+      const coin = Math.random() > 0.5 ? 1 : 0
+      // set result (this will update the displayed coin face)
+      coinResults.value = [
+        ...coinResults.value.slice(0, coinIndex),
+        coin,
+        ...coinResults.value.slice(coinIndex + 1),
+      ]
+    }
+
+    // small pause (1s) before saving the line to let users see final coin states
+    await sleep(1000)
+
+    // derive line from coinResults: majority heads => 1 (Dương), else 0 (Âm)
+    const sum = coinResults.value.reduce<number>((s, v) => s + (v ?? 0), 0)
+    const line = sum >= 2 ? 1 : 0
+    lines.value = [...lines.value, line]
   }
 
   const binary = lines.value.join('')
@@ -119,22 +123,25 @@ async function castOracle() {
         &larr; Về trang chủ
       </RouterLink>
 
-      <section class="border border-border-default bg-bg-surface p-6 sm:p-8 animate-fade-up animate-delay-1">
+      <section
+        class="border border-border-default bg-bg-surface p-6 sm:p-8 animate-fade-up animate-delay-1"
+      >
         <p class="mb-3 font-display text-xs tracking-widest text-accent-coral">// BINARY ORACLE</p>
         <h1 class="font-display text-3xl sm:text-5xl font-bold leading-tight text-text-primary">
           Kinh Dịch
           <span class="text-accent-coral">Nhị Phân</span>
         </h1>
         <p class="mt-4 max-w-3xl text-text-secondary leading-relaxed">
-          Hệ thống dự báo tương lai dựa trên nhị phân học cổ truyền.
-          Kinh Dịch là hệ điều hành đầu tiên của nhân loại với 0 là Âm, 1 là Dương.
+          Hệ thống dự báo tương lai dựa trên nhị phân học cổ truyền. Kinh Dịch là hệ điều hành đầu
+          tiên của nhân loại với 0 là Âm, 1 là Dương.
         </p>
         <div class="mt-6 flex flex-col items-center">
           <img :src="batquaiImg" alt="bát quái" class="w-48 sm:w-64 md:w-80 block object-contain" />
           <p class="mt-4 max-w-2xl text-sm text-text-secondary leading-relaxed text-center">
-            Kinh Dịch Nhị Phân là phiên bản giải trí lấy cảm hứng từ Kinh Dịch cổ truyền,
-            sử dụng 6 lần gieo (mỗi lần gồm 3 đồng xu) để tạo ra một chuỗi nhị phân 6 bit tương ứng với 64 quẻ.
-            Mỗi quẻ được ánh xạ sang lời giải và khuyến nghị phù hợp với đời sống hàng ngày của người làm IT.
+            Kinh Dịch Nhị Phân là phiên bản giải trí lấy cảm hứng từ Kinh Dịch cổ truyền, sử dụng 6
+            lần gieo (mỗi lần gồm 3 đồng xu) để tạo ra một chuỗi nhị phân 6 bit tương ứng với 64
+            quẻ. Mỗi quẻ được ánh xạ sang lời giải và khuyến nghị phù hợp với đời sống hàng ngày của
+            người làm IT.
           </p>
         </div>
       </section>
@@ -142,7 +149,9 @@ async function castOracle() {
       <section class="mt-5 grid gap-4 sm:grid-cols-3 animate-fade-up animate-delay-2">
         <article class="border border-border-default bg-bg-surface p-4">
           <p class="font-display text-xs tracking-widest text-accent-amber">// CON SỐ MAY MẮN</p>
-          <p class="mt-2 font-display text-3xl font-bold text-text-primary">{{ dailyInfo.luckyNumber }}</p>
+          <p class="mt-2 font-display text-3xl font-bold text-text-primary">
+            {{ dailyInfo.luckyNumber }}
+          </p>
         </article>
 
         <article class="border border-border-default bg-bg-surface p-4">
@@ -151,21 +160,30 @@ async function castOracle() {
         </article>
 
         <article class="border border-border-default bg-bg-surface p-4">
-          <p class="font-display text-xs tracking-widest text-accent-coral">// HƯỚNG NGỒI PHONG THỦY</p>
+          <p class="font-display text-xs tracking-widest text-accent-coral">
+            // HƯỚNG NGỒI PHONG THỦY
+          </p>
           <p class="mt-2 text-sm leading-relaxed text-text-primary">{{ dailyInfo.direction }}</p>
         </article>
       </section>
 
-      <section class="mt-5 border border-border-default bg-bg-surface p-6 sm:p-8 animate-fade-up animate-delay-3">
+      <section
+        class="mt-5 border border-border-default bg-bg-surface p-6 sm:p-8 animate-fade-up animate-delay-3"
+      >
         <div class="flex flex-col gap-6">
           <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p class="font-display text-xs tracking-widest text-accent-amber">// THE 6-STEP HANDSHAKE</p>
+              <p class="font-display text-xs tracking-widest text-accent-amber">
+                // THE 6-STEP HANDSHAKE
+              </p>
               <p class="mt-2 text-sm text-text-secondary">{{ statusText }}</p>
             </div>
 
             <!-- Enhanced binary display: highlighted, monospace, animated when spinning -->
-            <div class="font-display text-sm tracking-widest text-text-dim flex items-center gap-3" aria-live="polite">
+            <div
+              class="font-display text-sm tracking-widest text-text-dim flex items-center gap-3"
+              aria-live="polite"
+            >
               <span class="uppercase text-xs text-text-dim">Binary</span>
               <div class="flex gap-1">
                 <span
@@ -176,7 +194,7 @@ async function castOracle() {
                     isAnySpinning ? 'animate-pulse' : '',
                     bit === 'x' ? 'bg-bg-deep text-text-dim border-border-default' : '',
                     bit === '1' ? 'bg-accent-coral text-bg-deep border-accent-coral' : '',
-                    bit === '0' ? 'bg-accent-sky text-bg-deep border-accent-sky' : ''
+                    bit === '0' ? 'bg-accent-sky text-bg-deep border-accent-sky' : '',
                   ]"
                 >
                   {{ bit }}
@@ -191,13 +209,15 @@ async function castOracle() {
               :key="index"
               class="border border-border-default bg-bg-deep px-4 py-5 text-center"
             >
-              <p class="font-display text-xs tracking-widest text-accent-sky">COIN {{ index + 1 }}</p>
+              <p class="font-display text-xs tracking-widest text-accent-sky">
+                COIN {{ index + 1 }}
+              </p>
               <div class="mt-2">
-                  <div v-if="coinSpinning[index]" class="mx-auto flex items-center justify-center">
-                    <span class="typing font-mono text-sm text-text-primary">Gieo hào...</span>
-                  </div>
-                  <p v-else class="text-sm text-text-primary">{{ face }}</p>
+                <div v-if="coinSpinning[index]" class="mx-auto flex items-center justify-center">
+                  <span class="typing font-mono text-sm text-text-primary">Gieo hào...</span>
                 </div>
+                <p v-else class="text-sm text-text-primary">{{ face }}</p>
+              </div>
             </div>
           </div>
 
@@ -229,7 +249,9 @@ async function castOracle() {
 
         <article class="border border-border-default bg-bg-deep p-4 sm:col-span-2">
           <p class="font-display text-xs tracking-widest text-accent-sky">// LỜI SẤM</p>
-          <p class="mt-2 text-sm leading-relaxed text-text-primary">{{ currentHexagram.description }}</p>
+          <p class="mt-2 text-sm leading-relaxed text-text-primary">
+            {{ currentHexagram.description }}
+          </p>
         </article>
 
         <article class="mt-4 border border-border-default bg-bg-deep p-4">
@@ -252,7 +274,9 @@ async function castOracle() {
               <p class="font-display text-xs tracking-widest text-accent-sky">// GIỜ HẮC ĐẠO</p>
               <p class="mt-1 text-sm text-text-primary">{{ guidance?.inauspicious }}</p>
 
-              <p class="font-display text-xs tracking-widest text-accent-coral mt-3">// KHÔNG NÊN</p>
+              <p class="font-display text-xs tracking-widest text-accent-coral mt-3">
+                // KHÔNG NÊN
+              </p>
               <p class="mt-1 text-sm text-text-primary">{{ guidance?.shouldNotDo }}</p>
             </div>
           </div>
@@ -263,16 +287,20 @@ async function castOracle() {
 </template>
 
 <style scoped>
-.typing{
-  display:inline-block;
-  overflow:hidden;
-  white-space:nowrap;
-  width:0;
-  border-right: .12em solid rgba(255,255,255,0.0);
-  animation: typing 1s steps(15,end) forwards;
+.typing {
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  width: 0;
+  border-right: 0.12em solid rgba(255, 255, 255, 0);
+  animation: typing 1s steps(15, end) forwards;
 }
-@keyframes typing{
-  from{ width: 0; }
-  to{ width: 100%; }
+@keyframes typing {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
 }
 </style>

@@ -1,29 +1,29 @@
 <script setup lang="ts">
-import { ref } from "vue";
-import type { Difficulty, BestRecord } from "../types";
-import { difficultyConfig, STORAGE_KEY } from "../config";
-import { useLanguage } from "../composables/useLanguage";
+import { ref } from 'vue'
+import type { Difficulty, BestRecord } from '../types'
+import { difficultyConfig, STORAGE_KEY } from '../config'
+import { useLanguage } from '../composables/useLanguage'
 
 defineProps<{
-  bestRecords?: BestRecord | null;
-}>();
+  bestRecords?: BestRecord | null
+}>()
 
 const emit = defineEmits<{
-  start: [difficulty: Difficulty];
-}>();
+  start: [difficulty: Difficulty]
+}>()
 
-const { t } = useLanguage();
-const selectedDifficulty = ref<Difficulty>("noob");
+const { t } = useLanguage()
+const selectedDifficulty = ref<Difficulty>('noob')
 
 function getBestTime(difficulty: Difficulty): string {
-  const key = `${STORAGE_KEY.BEST_NOOB}`.replace("noob", difficulty);
-  const stored = localStorage.getItem(key);
-  if (!stored) return t.value.noBestYet;
-  const record: BestRecord = JSON.parse(stored);
-  return `${(record.time / 1000).toFixed(2)}s`;
+  const key = `${STORAGE_KEY.BEST_NOOB}`.replace('noob', difficulty)
+  const stored = localStorage.getItem(key)
+  if (!stored) return t.value.noBestYet
+  const record: BestRecord = JSON.parse(stored)
+  return `${(record.time / 1000).toFixed(2)}s`
 }
 
-const difficulties: Difficulty[] = ["noob", "medium", "hard", "asian"];
+const difficulties: Difficulty[] = ['noob', 'medium', 'hard', 'asian']
 </script>
 
 <template>

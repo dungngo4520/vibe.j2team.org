@@ -1,11 +1,11 @@
 <script setup lang="ts">
 defineProps<{
-  disabled?: boolean;
-}>();
+  disabled?: boolean
+}>()
 
 const emit = defineEmits<{
-  move: [direction: "up" | "down" | "left" | "right"];
-}>();
+  move: [direction: 'up' | 'down' | 'left' | 'right']
+}>()
 </script>
 
 <template>
