@@ -197,6 +197,22 @@ Apps can import from these directories but are never required to. Each app remai
 
 ## Adding a New Page
 
+Run the generator script:
+
+```sh
+# Interactive (prompts for missing fields)
+pnpm create:page <slug>
+
+# Non-interactive (all fields via flags — use this in scripts and AI agents)
+pnpm create:page <slug> --name "Display Name" --description "Page description" --author "Author" --category game [--facebook "https://..."]
+```
+
+Available categories: `game`, `tool`, `fun`, `learn`, `spiritual`, `connect`, `other`.
+
+This creates `src/views/<slug>/index.vue` + `meta.ts` with the correct structure. Any flag not provided will be prompted interactively.
+
+**Manual alternative** (if not using the script):
+
 1. Create a new directory under `src/views/<your-page-name>/`
 2. Add `index.vue` as the main component inside that directory
 3. Add `meta.ts` exporting a `PageMeta` object with: `name`, `description`, `author`, `category`, and optionally `facebook`
