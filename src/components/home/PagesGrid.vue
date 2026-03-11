@@ -3,7 +3,7 @@ import { ref, computed, type Directive } from 'vue'
 import { useEventListener, useIntersectionObserver, refDebounced } from '@vueuse/core'
 import { RouterLink, useRouter } from 'vue-router'
 import { Icon } from '@iconify/vue'
-import { pages } from '@/data/pages-loader'
+import { pages, featuredPages } from '@/data/pages-loader'
 import { padIndex } from '@/data/homepage'
 import { categories, type CategoryId } from '@/data/categories'
 import FavoriteButton from '@/components/FavoriteButton.vue'
@@ -46,18 +46,30 @@ const searchQuery = ref('')
 const debouncedQuery = refDebounced(searchQuery, 300)
 const activeCategory = ref<CategoryId | null>(null)
 
-const searchablePages = pages.map((p) => ({
-  ...p,
-  _name: normalize(p.name),
-  _desc: normalize(p.description),
-  _author: normalize(p.author),
-}))
+const showAll = ref(false)
+
+const isFiltering = computed(() => {
+  return searchQuery.value.trim() !== '' || activeCategory.value !== null
+})
+
+const hiddenCount = computed(() => pages.length - featuredPages.length)
+
+// Use all pages when filtering or expanded, featured-only otherwise (lazy normalization)
+const searchablePages = computed(() => {
+  const pool = isFiltering.value || showAll.value ? pages : featuredPages
+  return pool.map((p) => ({
+    ...p,
+    _name: normalize(p.name),
+    _desc: normalize(p.description),
+    _author: normalize(p.author),
+  }))
+})
 
 const filteredPages = computed(() => {
   const query = normalize(debouncedQuery.value.trim())
   const category = activeCategory.value
 
-  return searchablePages.filter((page) => {
+  return searchablePages.value.filter((page) => {
     if (category) {
       if (page.category !== category) return false
     }
@@ -70,10 +82,6 @@ const filteredPages = computed(() => {
 
     return true
   })
-})
-
-const isFiltering = computed(() => {
-  return searchQuery.value.trim() !== '' || activeCategory.value !== null
 })
 
 function toggleCategory(id: CategoryId) {
@@ -309,6 +317,17 @@ useEventListener(document, 'keydown', handleKeydown)
       >
         <span class="text-sm font-display tracking-wide">Trang của bạn sẽ ở đây...</span>
       </a>
+    </div>
+
+    <!-- Show more button (only when not filtering and not all shown) -->
+    <div v-if="!isFiltering && !showAll && hiddenCount > 0" class="mt-8 flex justify-center">
+      <button
+        class="flex items-center gap-2 px-6 py-3 text-sm font-display tracking-wide border border-border-default text-text-secondary bg-bg-surface transition-colors duration-200 hover:border-accent-coral hover:text-accent-coral cursor-pointer"
+        @click="showAll = true"
+      >
+        <Icon icon="lucide:chevrons-down" aria-hidden="true" class="w-4 h-4" />
+        Xem thêm {{ hiddenCount }} apps
+      </button>
     </div>
   </main>
 </template>
