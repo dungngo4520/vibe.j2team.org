@@ -8,6 +8,8 @@ import {
   ZOOM_LEVELS,
   MINIMAP_SIZE,
   MINIMAP_DEBOUNCE_MS,
+  COLS,
+  CELL_SIZE,
 } from './constants/gridConfig'
 
 import { encodeRLE, decodeRLE } from './utils/compression'
@@ -145,13 +147,34 @@ function importState() {
   if (!code) return
   try {
     const indices = decodeRLE(code)
-    if (indices && Array.isArray(indices)) {
+    if (indices && Array.isArray(indices) && indices.length > 0) {
       importStateRaw(indices)
       rebuildSpatialGrid(checkedSet.value)
+
+      // Pan to the imported content
+      let minCol = Infinity
+      let minRow = Infinity
+      for (let i = 0; i < indices.length; i++) {
+        const idx = indices[i]!
+        const c = idx % COLS
+        const r = Math.floor(idx / COLS)
+        if (c < minCol) minCol = c
+        if (r < minRow) minRow = r
+      }
+
+      if (minCol !== Infinity && minRow !== Infinity && containerRef.value) {
+        const cellSize = CELL_SIZE * zoom.value
+        // Center the import by adding some padding
+        const paddingX = Math.max(0, (containerRef.value.clientWidth - 400) / 2)
+        const paddingY = Math.max(0, (containerRef.value.clientHeight - 400) / 2)
+        containerRef.value.scrollLeft = Math.max(0, minCol * cellSize - paddingX)
+        containerRef.value.scrollTop = Math.max(0, minRow * cellSize - paddingY)
+      }
+
       draw()
       if (showMinimap.value) drawMinimap()
     } else {
-      alert('Invalid format.')
+      alert('Invalid format or empty state.')
     }
   } catch {
     alert('Failed to parse vibe code.')
