@@ -2,10 +2,10 @@ import { COLS, GRID_SIZE, GRID_COLS } from '../constants/gridConfig'
 
 /**
  * Spatial grid composable for fast empty region detection
- * Divides the canvas into 256x256 blocks and tracks which blocks contain pixels
+ * Divides the canvas into 256x256 blocks and tracks which blocks contain pixels and how many.
  */
 export function useSpatialGrid() {
-  const spatialGrid = new Set<number>() // Set of grid indices with pixels
+  const spatialGrid = new Map<number, number>() // Map of grid indices to pixel counts
 
   /**
    * Initialize spatial grid from an existing set of checked indices
@@ -18,7 +18,7 @@ export function useSpatialGrid() {
       const gridRow = Math.floor(row / GRID_SIZE)
       const gridCol = Math.floor(col / GRID_SIZE)
       const gridIndex = gridRow * GRID_COLS + gridCol
-      spatialGrid.add(gridIndex)
+      spatialGrid.set(gridIndex, (spatialGrid.get(gridIndex) || 0) + 1)
     }
   }
 
@@ -32,12 +32,15 @@ export function useSpatialGrid() {
     const gridCol = Math.floor(col / GRID_SIZE)
     const gridIndex = gridRow * GRID_COLS + gridCol
 
+    const count = spatialGrid.get(gridIndex) || 0
     if (isAdding) {
-      spatialGrid.add(gridIndex)
+      spatialGrid.set(gridIndex, count + 1)
     } else {
-      // Only remove from spatial grid if the entire grid cell is empty
-      // (expensive check, so we skip it and accept false positives)
-      // spatialGrid will be rebuilt on page reload
+      if (count <= 1) {
+        spatialGrid.delete(gridIndex)
+      } else {
+        spatialGrid.set(gridIndex, count - 1)
+      }
     }
   }
 

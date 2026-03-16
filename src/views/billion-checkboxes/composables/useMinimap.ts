@@ -14,7 +14,7 @@ export function useMinimap(
   containerRef: Ref<HTMLElement | null>,
   zoom: Ref<number>,
   checkedSet: Ref<Set<number>>,
-  spatialGrid: Set<number>,
+  spatialGrid: Map<number, number>,
   showMinimap: Ref<boolean>
 ) {
   let minimapCtx: CanvasRenderingContext2D | null = null

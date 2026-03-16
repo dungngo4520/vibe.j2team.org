@@ -6,7 +6,7 @@ export function useCanvasRenderer(
   containerRef: Ref<HTMLElement | null>,
   zoom: Ref<number>,
   checkedSet: Ref<Set<number>>,
-  spatialGrid: Set<number>,
+  spatialGrid: Map<number, number>,
 ) {
   let cachedCtx: CanvasRenderingContext2D | null = null
   let drawScheduled = false
@@ -79,13 +79,6 @@ export function useCanvasRenderer(
       }
 
       if (lodFactor > 1) {
-        const useSampling = lodFactor > 50
-        const sampleStep = useSampling ? Math.max(1, Math.floor(lodFactor / 10)) : 1
-
-        ctx.beginPath()
-        let rectCount = 0
-        const batchSize = 1000
-
         for (let r = startRow; r <= endRow; r += lodFactor) {
           for (let c = startCol; c <= endCol; c += lodFactor) {
             const gridStartRow = Math.floor(r / GRID_SIZE)
@@ -93,54 +86,65 @@ export function useCanvasRenderer(
             const gridStartCol = Math.floor(c / GRID_SIZE)
             const gridEndCol = Math.floor((c + lodFactor - 1) / GRID_SIZE)
             
-            let hasPixelsInRegion = false
+            let totalFilledInRegion = 0
             for (let gr = gridStartRow; gr <= gridEndRow && gr < GRID_ROWS; gr++) {
               for (let gc = gridStartCol; gc <= gridEndCol && gc < GRID_COLS; gc++) {
                 const gridIndex = gr * GRID_COLS + gc
-                if (spatialGrid.has(gridIndex)) {
-                  hasPixelsInRegion = true
-                  break
-                }
+                totalFilledInRegion += spatialGrid.get(gridIndex) || 0
               }
-              if (hasPixelsInRegion) break
             }
             
-            if (!hasPixelsInRegion) continue
+            if (totalFilledInRegion === 0) continue
 
             let filledCount = 0
-            let sampledCells = 0
+            // Instead of counting everything manually again if we span a small region, 
+            // if lodFactor roughly matches grid size or if we just want a rough estimate,
+            // we could just use totalFilledInRegion. But for accuracy, let's keep the exact count if needed
+            // Actually, if we're zoomed out a lot, we can just use the spatial grid counts directly!
+            
+            if (lodFactor >= GRID_SIZE / 2) {
+              filledCount = totalFilledInRegion
+              // Approximate density based on region area covered
+              const cellsInRegion = lodFactor * lodFactor
+              const density = Math.min(1, filledCount / cellsInRegion)
+              const opacity = zoom.value < 0.01 ? 0.6 : Math.max(0.2, density)
 
-            for (let dr = 0; dr < lodFactor && r + dr < ROWS; dr += sampleStep) {
-              for (let dc = 0; dc < lodFactor && c + dc < COLS; dc += sampleStep) {
-                const index = (r + dr) * COLS + (c + dc)
-                if (checkedSet.value.has(index)) filledCount++
-                sampledCells++
-              }
-            }
-
-            if (filledCount > 0) {
               const x = offsetX + c * cellSize
               const y = offsetY + r * cellSize
               const groupSize = lodFactor * cellSize
-
-              const density = useSampling
-                ? filledCount / sampledCells
-                : filledCount / (lodFactor * lodFactor)
-
-              const opacity = zoom.value < 0.01 ? 0.6 : Math.max(0.2, density)
-
-              if (rectCount > 0 && rectCount % batchSize === 0) {
-                ctx.fill()
-                ctx.beginPath()
-              }
-
               ctx.fillStyle = `rgba(255, 107, 74, ${opacity})`
               ctx.fillRect(x, y, groupSize, groupSize)
-              rectCount++
+            } else {
+              // Exact count for small lod factors
+              const useSampling = lodFactor > 50
+              const sampleStep = useSampling ? Math.max(1, Math.floor(lodFactor / 10)) : 1
+              let sampledCells = 0
+
+              for (let dr = 0; dr < lodFactor && r + dr < ROWS; dr += sampleStep) {
+                for (let dc = 0; dc < lodFactor && c + dc < COLS; dc += sampleStep) {
+                  const index = (r + dr) * COLS + (c + dc)
+                  if (checkedSet.value.has(index)) filledCount++
+                  sampledCells++
+                }
+              }
+
+              if (filledCount > 0) {
+                const x = offsetX + c * cellSize
+                const y = offsetY + r * cellSize
+                const groupSize = lodFactor * cellSize
+
+                const density = useSampling
+                  ? filledCount / sampledCells
+                  : filledCount / (lodFactor * lodFactor)
+
+                const opacity = zoom.value < 0.01 ? 0.6 : Math.max(0.2, density)
+
+                ctx.fillStyle = `rgba(255, 107, 74, ${opacity})`
+                ctx.fillRect(x, y, groupSize, groupSize)
+              }
             }
           }
         }
-        if (rectCount > 0) ctx.fill()
       } else {
         const gridStartRow = Math.floor(startRow / GRID_SIZE)
         const gridEndRow = Math.ceil(endRow / GRID_SIZE)

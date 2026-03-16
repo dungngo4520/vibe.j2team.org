@@ -78,7 +78,10 @@ export function usePixelState() {
    */
   function importState(indices: number[]) {
     checkedSet.value = new Set(indices)
-    checkedIndices.value = indices
+    // Avoid blocking UI immediately; use setTimeout to defer localstorage JSON serialization
+    setTimeout(() => {
+      checkedIndices.value = indices
+    }, 100)
     pendingSaveIndices.clear()
   }
 

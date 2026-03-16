@@ -25,8 +25,10 @@ export function encodeRLE(indices: Set<number> | number[]): string {
   }
   encoded.push(start, end - start + 1)
 
-  // Encode as base64 string of 32-bit integers (limit to 2500 pairs = 5000 ints)
-  const limit = Math.min(encoded.length, 5000)
+  // Encode as base64 string of 32-bit integers
+  // Note: Local script has no limit, but we limit in-browser export
+  // to avoid crashing the browser with giant string concatenations
+  const limit = Math.min(encoded.length, 500000) 
   const bytes = new Uint8Array(limit * 4)
   for (let i = 0; i < limit; i++) {
     const val = encoded[i]!
@@ -37,9 +39,12 @@ export function encodeRLE(indices: Set<number> | number[]): string {
   }
 
   // Convert Uint8Array to base64
+  // Chunking to avoid stack overflow or memory issues on huge arrays
   let binary = ''
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i]!)
+  const chunkSize = 10000
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize)
+    binary += String.fromCharCode.apply(null, chunk as unknown as number[])
   }
   return btoa(binary)
 }
@@ -51,18 +56,27 @@ export function decodeRLE(encoded: string): number[] {
   if (!encoded) return []
   try {
     const binary = atob(encoded)
-    const bytes = new Uint8Array(binary.length)
-    for (let i = 0; i < binary.length; i++) {
+    const len = binary.length
+    const bytes = new Uint8Array(len)
+    for (let i = 0; i < len; i++) {
       bytes[i] = binary.charCodeAt(i)
     }
 
-    const indices: number[] = []
-    for (let i = 0; i < bytes.length; i += 8) {
-      if (i + 7 >= bytes.length) break
+    let totalLength = 0;
+    for (let i = 0; i < len; i += 8) {
+      if (i + 7 >= len) break
+      totalLength += bytes[i + 4]! | (bytes[i + 5]! << 8) | (bytes[i + 6]! << 16) | (bytes[i + 7]! << 24)
+    }
+
+    const indices: number[] = [];
+    indices.length = totalLength;
+    let idx = 0;
+    for (let i = 0; i < len; i += 8) {
+      if (i + 7 >= len) break
       const start = bytes[i]! | (bytes[i + 1]! << 8) | (bytes[i + 2]! << 16) | (bytes[i + 3]! << 24)
-      const len = bytes[i + 4]! | (bytes[i + 5]! << 8) | (bytes[i + 6]! << 16) | (bytes[i + 7]! << 24)
-      for (let j = 0; j < len; j++) {
-        indices.push(start + j)
+      const count = bytes[i + 4]! | (bytes[i + 5]! << 8) | (bytes[i + 6]! << 16) | (bytes[i + 7]! << 24)
+      for (let j = 0; j < count; j++) {
+        indices[idx++] = start + j;
       }
     }
     return indices
