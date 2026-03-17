@@ -1,4 +1,4 @@
-import { shallowRef } from 'vue'
+import { shallowRef, triggerRef } from 'vue'
 import { useLocalStorage, useDebounceFn } from '@vueuse/core'
 import { STORAGE_KEY, SAVE_DEBOUNCE_MS } from '../constants/gridConfig'
 
@@ -7,20 +7,20 @@ import { STORAGE_KEY, SAVE_DEBOUNCE_MS } from '../constants/gridConfig'
  */
 export function usePixelState() {
   const checkedIndices = useLocalStorage<number[]>(STORAGE_KEY, [])
-  // Use shallowRef + Set for 125MB bitmap (1B bits = 125MB)
+  // Use shallowRef + Set for sparse storage (tradeoff: sparse set vs true bitset)
   const checkedSet = shallowRef(new Set(checkedIndices.value))
 
-  // Track pending changes for incremental save
-  const pendingSaveIndices = new Set<number>()
+  // Track pending changes for debounced save
+  let hasPendingSave = false
 
   /**
    * Schedule a debounced save to localStorage
    */
   const scheduleSave = useDebounceFn(() => {
-    // Only update localStorage with changed indices, not full array
-    if (pendingSaveIndices.size > 0) {
+    // Debounce the full array serialization to localStorage to avoid freezing UI
+    if (hasPendingSave) {
       checkedIndices.value = Array.from(checkedSet.value)
-      pendingSaveIndices.clear()
+      hasPendingSave = false
     }
   }, SAVE_DEBOUNCE_MS)
 
@@ -28,17 +28,16 @@ export function usePixelState() {
    * Toggle a pixel at the given index
    */
   function togglePixel(index: number): boolean {
-    const newSet = new Set(checkedSet.value)
-    const wasChecked = newSet.has(index)
+    const wasChecked = checkedSet.value.has(index)
 
     if (wasChecked) {
-      newSet.delete(index)
+      checkedSet.value.delete(index)
     } else {
-      newSet.add(index)
+      checkedSet.value.add(index)
     }
 
-    checkedSet.value = newSet
-    pendingSaveIndices.add(index)
+    triggerRef(checkedSet)
+    hasPendingSave = true
     scheduleSave()
 
     return !wasChecked // Return new state
@@ -48,18 +47,17 @@ export function usePixelState() {
    * Set a pixel to a specific state (checked or unchecked)
    */
   function setPixel(index: number, checked: boolean) {
-    const newSet = new Set(checkedSet.value)
-    const wasChecked = newSet.has(index)
+    const wasChecked = checkedSet.value.has(index)
 
     if (checked && !wasChecked) {
-      newSet.add(index)
-      checkedSet.value = newSet
-      pendingSaveIndices.add(index)
+      checkedSet.value.add(index)
+      triggerRef(checkedSet)
+      hasPendingSave = true
       scheduleSave()
     } else if (!checked && wasChecked) {
-      newSet.delete(index)
-      checkedSet.value = newSet
-      pendingSaveIndices.add(index)
+      checkedSet.value.delete(index)
+      triggerRef(checkedSet)
+      hasPendingSave = true
       scheduleSave()
     }
   }
@@ -68,9 +66,10 @@ export function usePixelState() {
    * Clear all pixels
    */
   function clearAll() {
-    checkedSet.value = new Set()
+    checkedSet.value.clear()
+    triggerRef(checkedSet)
     checkedIndices.value = []
-    pendingSaveIndices.clear()
+    hasPendingSave = false
   }
 
   /**
@@ -78,11 +77,9 @@ export function usePixelState() {
    */
   function importState(indices: number[]) {
     checkedSet.value = new Set(indices)
-    // Avoid blocking UI immediately; use setTimeout to defer localstorage JSON serialization
-    setTimeout(() => {
-      checkedIndices.value = indices
-    }, 100)
-    pendingSaveIndices.clear()
+    triggerRef(checkedSet)
+    hasPendingSave = true
+    scheduleSave()
   }
 
   /**
@@ -90,6 +87,11 @@ export function usePixelState() {
    */
   function exportState(): number[] {
     return Array.from(checkedSet.value)
+  }
+
+  function markDirtyAndSave() {
+    hasPendingSave = true
+    scheduleSave()
   }
 
   return {
@@ -100,5 +102,6 @@ export function usePixelState() {
     clearAll,
     importState,
     exportState,
+    markDirtyAndSave,
   }
 }

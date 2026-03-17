@@ -1,5 +1,12 @@
 import { type Ref } from 'vue'
-import { CELL_SIZE, COLS, ROWS, GRID_SIZE, GRID_ROWS, GRID_COLS } from '../constants/gridConfig'
+import {
+  CELL_SIZE,
+  COLS,
+  ROWS,
+  GRID_CELL_SIZE,
+  GRID_ROWS,
+  GRID_COLS,
+} from '../constants/gridConfig'
 
 export function useCanvasRenderer(
   canvasRef: Ref<HTMLCanvasElement | null>,
@@ -81,11 +88,11 @@ export function useCanvasRenderer(
       if (lodFactor > 1) {
         for (let r = startRow; r <= endRow; r += lodFactor) {
           for (let c = startCol; c <= endCol; c += lodFactor) {
-            const gridStartRow = Math.floor(r / GRID_SIZE)
-            const gridEndRow = Math.floor((r + lodFactor - 1) / GRID_SIZE)
-            const gridStartCol = Math.floor(c / GRID_SIZE)
-            const gridEndCol = Math.floor((c + lodFactor - 1) / GRID_SIZE)
-            
+            const gridStartRow = Math.floor(r / GRID_CELL_SIZE)
+            const gridEndRow = Math.floor((r + lodFactor - 1) / GRID_CELL_SIZE)
+            const gridStartCol = Math.floor(c / GRID_CELL_SIZE)
+            const gridEndCol = Math.floor((c + lodFactor - 1) / GRID_CELL_SIZE)
+
             let totalFilledInRegion = 0
             for (let gr = gridStartRow; gr <= gridEndRow && gr < GRID_ROWS; gr++) {
               for (let gc = gridStartCol; gc <= gridEndCol && gc < GRID_COLS; gc++) {
@@ -93,16 +100,13 @@ export function useCanvasRenderer(
                 totalFilledInRegion += spatialGrid.get(gridIndex) || 0
               }
             }
-            
+
             if (totalFilledInRegion === 0) continue
 
             let filledCount = 0
-            // Instead of counting everything manually again if we span a small region, 
-            // if lodFactor roughly matches grid size or if we just want a rough estimate,
-            // we could just use totalFilledInRegion. But for accuracy, let's keep the exact count if needed
-            // Actually, if we're zoomed out a lot, we can just use the spatial grid counts directly!
-            
-            if (lodFactor >= GRID_SIZE / 2) {
+            // At high zoom-out levels, approximate density using pre-computed spatial grid totals for performance.
+
+            if (lodFactor >= GRID_CELL_SIZE / 2) {
               filledCount = totalFilledInRegion
               // Approximate density based on region area covered
               const cellsInRegion = lodFactor * lodFactor
@@ -146,25 +150,25 @@ export function useCanvasRenderer(
           }
         }
       } else {
-        const gridStartRow = Math.floor(startRow / GRID_SIZE)
-        const gridEndRow = Math.ceil(endRow / GRID_SIZE)
-        const gridStartCol = Math.floor(startCol / GRID_SIZE)
-        const gridEndCol = Math.ceil(endCol / GRID_SIZE)
-        
+        const gridStartRow = Math.floor(startRow / GRID_CELL_SIZE)
+        const gridEndRow = Math.ceil(endRow / GRID_CELL_SIZE)
+        const gridStartCol = Math.floor(startCol / GRID_CELL_SIZE)
+        const gridEndCol = Math.ceil(endCol / GRID_CELL_SIZE)
+
         ctx.fillStyle = '#ff6b4a'
         ctx.beginPath()
         let pathCount = 0
-        
+
         for (let gr = gridStartRow; gr <= gridEndRow && gr < GRID_ROWS; gr++) {
           for (let gc = gridStartCol; gc <= gridEndCol && gc < GRID_COLS; gc++) {
             const gridIndex = gr * GRID_COLS + gc
             if (!spatialGrid.has(gridIndex)) continue
-            
-            const cellStartRow = Math.max(startRow, gr * GRID_SIZE)
-            const cellEndRow = Math.min(endRow, (gr + 1) * GRID_SIZE - 1)
-            const cellStartCol = Math.max(startCol, gc * GRID_SIZE)
-            const cellEndCol = Math.min(endCol, (gc + 1) * GRID_SIZE - 1)
-            
+
+            const cellStartRow = Math.max(startRow, gr * GRID_CELL_SIZE)
+            const cellEndRow = Math.min(endRow, (gr + 1) * GRID_CELL_SIZE - 1)
+            const cellStartCol = Math.max(startCol, gc * GRID_CELL_SIZE)
+            const cellEndCol = Math.min(endCol, (gc + 1) * GRID_CELL_SIZE - 1)
+
             for (let r = cellStartRow; r <= cellEndRow; r++) {
               for (let c = cellStartCol; c <= cellEndCol; c++) {
                 const index = r * COLS + c

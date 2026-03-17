@@ -4,7 +4,7 @@ import {
   ROWS,
   CELL_SIZE,
   MINIMAP_SIZE,
-  GRID_SIZE,
+  GRID_CELL_SIZE,
   GRID_ROWS,
   GRID_COLS,
 } from '../constants/gridConfig'
@@ -15,7 +15,7 @@ export function useMinimap(
   zoom: Ref<number>,
   checkedSet: Ref<Set<number>>,
   spatialGrid: Map<number, number>,
-  showMinimap: Ref<boolean>
+  showMinimap: Ref<boolean>,
 ) {
   let minimapCtx: CanvasRenderingContext2D | null = null
   let isMinimapDragging = false
@@ -36,14 +36,14 @@ export function useMinimap(
 
     const lodFactor = Math.max(1, Math.min(200, Math.ceil(COLS / MINIMAP_SIZE)))
     const sampleStep = lodFactor > 50 ? 10 : 1
-    
+
     for (let r = 0; r < ROWS; r += lodFactor) {
       for (let c = 0; c < COLS; c += lodFactor) {
-        const gridStartRow = Math.floor(r / GRID_SIZE)
-        const gridEndRow = Math.floor(Math.min(r + lodFactor - 1, ROWS - 1) / GRID_SIZE)
-        const gridStartCol = Math.floor(c / GRID_SIZE)
-        const gridEndCol = Math.floor(Math.min(c + lodFactor - 1, COLS - 1) / GRID_SIZE)
-        
+        const gridStartRow = Math.floor(r / GRID_CELL_SIZE)
+        const gridEndRow = Math.floor(Math.min(r + lodFactor - 1, ROWS - 1) / GRID_CELL_SIZE)
+        const gridStartCol = Math.floor(c / GRID_CELL_SIZE)
+        const gridEndCol = Math.floor(Math.min(c + lodFactor - 1, COLS - 1) / GRID_CELL_SIZE)
+
         let hasPixelsInRegion = false
         for (let gr = gridStartRow; gr <= gridEndRow && gr < GRID_ROWS; gr++) {
           for (let gc = gridStartCol; gc <= gridEndCol && gc < GRID_COLS; gc++) {
@@ -54,9 +54,9 @@ export function useMinimap(
           }
           if (hasPixelsInRegion) break
         }
-        
+
         if (!hasPixelsInRegion) continue
-        
+
         let filledCount = 0
 
         for (let dr = 0; dr < lodFactor && r + dr < ROWS; dr += sampleStep) {
@@ -72,7 +72,8 @@ export function useMinimap(
           const w = Math.max(1, (lodFactor / COLS) * MINIMAP_SIZE)
           const h = Math.max(1, (lodFactor / ROWS) * MINIMAP_SIZE)
 
-          const sampledMaxCells = Math.ceil(lodFactor / sampleStep) * Math.ceil(lodFactor / sampleStep)
+          const sampledMaxCells =
+            Math.ceil(lodFactor / sampleStep) * Math.ceil(lodFactor / sampleStep)
           const density = filledCount / sampledMaxCells
           const opacity = Math.max(0.3, Math.min(1, density))
 
@@ -104,10 +105,10 @@ export function useMinimap(
 
   function handleMinimapPointerDown(e: PointerEvent) {
     if (!minimapRef.value || !containerRef.value) return
-    
+
     isMinimapDragging = true
     minimapRef.value.setPointerCapture(e.pointerId)
-    
+
     updateScrollFromMinimap(e)
   }
 

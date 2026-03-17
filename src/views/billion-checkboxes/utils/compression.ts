@@ -2,7 +2,7 @@
  * Run-Length Encoding for compression (supports 32-bit indices)
  * Converts a Set or array of indices into a compressed base64 string
  */
-export function encodeRLE(indices: Set<number> | number[]): string {
+export function encodeRLE(indices: Set<number> | number[], limit?: number): string {
   if (indices instanceof Set) {
     if (indices.size === 0) return ''
   } else if (indices.length === 0) return ''
@@ -26,11 +26,11 @@ export function encodeRLE(indices: Set<number> | number[]): string {
   encoded.push(start, end - start + 1)
 
   // Encode as base64 string of 32-bit integers
-  // Note: Local script has no limit, but we limit in-browser export
-  // to avoid crashing the browser with giant string concatenations
-  const limit = Math.min(encoded.length, 500000) 
-  const bytes = new Uint8Array(limit * 4)
-  for (let i = 0; i < limit; i++) {
+  const activeLimit = limit ? Math.min(encoded.length, limit) : encoded.length
+
+  // To avoid huge allocations on sync
+  const bytes = new Uint8Array(activeLimit * 4)
+  for (let i = 0; i < activeLimit; i++) {
     const val = encoded[i]!
     bytes[i * 4] = val & 0xff
     bytes[i * 4 + 1] = (val >> 8) & 0xff
@@ -54,6 +54,13 @@ export function encodeRLE(indices: Set<number> | number[]): string {
  */
 export function decodeRLE(encoded: string): number[] {
   if (!encoded) return []
+
+  // Cap the encoded string length (e.g. 5MB of base64 ~ 3.75MB bytes) to prevent memory attacks
+  if (encoded.length > 5 * 1024 * 1024) {
+    console.error('RLE decode failed: payload too large')
+    return []
+  }
+
   try {
     const binary = atob(encoded)
     const len = binary.length
@@ -62,21 +69,29 @@ export function decodeRLE(encoded: string): number[] {
       bytes[i] = binary.charCodeAt(i)
     }
 
-    let totalLength = 0;
+    let totalLength = 0
     for (let i = 0; i < len; i += 8) {
       if (i + 7 >= len) break
-      totalLength += bytes[i + 4]! | (bytes[i + 5]! << 8) | (bytes[i + 6]! << 16) | (bytes[i + 7]! << 24)
+      totalLength +=
+        bytes[i + 4]! | (bytes[i + 5]! << 8) | (bytes[i + 6]! << 16) | (bytes[i + 7]! << 24)
     }
 
-    const indices: number[] = [];
-    indices.length = totalLength;
-    let idx = 0;
+    // Cap total decoded indices to e.g. 10 million to avoid massive arrays crashing the tab
+    if (totalLength > 10_000_000) {
+      console.error('RLE decode failed: too many indices')
+      return []
+    }
+
+    const indices: number[] = []
+    indices.length = totalLength
+    let idx = 0
     for (let i = 0; i < len; i += 8) {
       if (i + 7 >= len) break
       const start = bytes[i]! | (bytes[i + 1]! << 8) | (bytes[i + 2]! << 16) | (bytes[i + 3]! << 24)
-      const count = bytes[i + 4]! | (bytes[i + 5]! << 8) | (bytes[i + 6]! << 16) | (bytes[i + 7]! << 24)
+      const count =
+        bytes[i + 4]! | (bytes[i + 5]! << 8) | (bytes[i + 6]! << 16) | (bytes[i + 7]! << 24)
       for (let j = 0; j < count; j++) {
-        indices[idx++] = start + j;
+        indices[idx++] = start + j
       }
     }
     return indices

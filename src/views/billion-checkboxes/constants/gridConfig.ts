@@ -8,9 +8,9 @@ export const ZOOM_LEVELS = [
 export const DEFAULT_ZOOM_INDEX = 11 // 1x zoom
 
 // Spatial Index Configuration
-export const GRID_SIZE = 256 // Size of spatial grid blocks in pixels
-export const GRID_COLS = Math.ceil(COLS / GRID_SIZE)
-export const GRID_ROWS = Math.ceil(ROWS / GRID_SIZE)
+export const GRID_CELL_SIZE = 256 // Size of spatial grid blocks in cell units
+export const GRID_COLS = Math.ceil(COLS / GRID_CELL_SIZE)
+export const GRID_ROWS = Math.ceil(ROWS / GRID_CELL_SIZE)
 
 // Minimap Configuration
 export const MINIMAP_SIZE = 200 // Size in pixels

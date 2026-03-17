@@ -85,23 +85,24 @@ export function useZoomControls(
   function handleWheel(e: WheelEvent) {
     if (e.ctrlKey || e.metaKey) {
       e.preventDefault()
-      
+
       const prevZoom = zoom.value
-      
+
       if (e.deltaY < 0) {
         zoomIn()
       } else {
         zoomOut()
       }
-      
+
       if (containerRef.value && prevZoom !== zoom.value) {
         const rect = containerRef.value.getBoundingClientRect()
         const mouseX = e.clientX - rect.left
         const mouseY = e.clientY - rect.top
-        
+
         const zoomRatio = zoom.value / prevZoom
-        
-        containerRef.value.scrollLeft = (containerRef.value.scrollLeft + mouseX) * zoomRatio - mouseX
+
+        containerRef.value.scrollLeft =
+          (containerRef.value.scrollLeft + mouseX) * zoomRatio - mouseX
         containerRef.value.scrollTop = (containerRef.value.scrollTop + mouseY) * zoomRatio - mouseY
       }
     }

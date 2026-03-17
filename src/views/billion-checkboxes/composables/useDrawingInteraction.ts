@@ -9,7 +9,7 @@ export function useDrawingInteraction(
   updateSpatialGrid: (index: number, isAdding: boolean) => void,
   scheduleDraw: () => void,
   pendingAdd: Set<number>,
-  pendingDel: Set<number>
+  pendingDel: Set<number>,
 ) {
   const isDrawMode = ref(false)
   let isPointerDown = false
@@ -47,7 +47,7 @@ export function useDrawingInteraction(
       if (index !== null) {
         drawState = togglePixel(index)
         updateSpatialGrid(index, drawState)
-        
+
         if (drawState) {
           pendingAdd.add(index)
           pendingDel.delete(index)
@@ -55,14 +55,14 @@ export function useDrawingInteraction(
           pendingDel.add(index)
           pendingAdd.delete(index)
         }
-        
+
         scheduleDraw()
       }
     } else {
-      // Pan mode: Only apply custom JS drag-to-scroll for mouse. 
+      // Pan mode: Only apply custom JS drag-to-scroll for mouse.
       // Touch devices use native momentum scrolling natively.
       if (!containerRef.value || e.pointerType !== 'mouse') return
-      
+
       isPanning = true
       startPanX = e.clientX
       startPanY = e.clientY
@@ -78,7 +78,7 @@ export function useDrawingInteraction(
       if (index !== null) {
         setPixel(index, drawState)
         updateSpatialGrid(index, drawState)
-        
+
         if (drawState) {
           pendingAdd.add(index)
           pendingDel.delete(index)
@@ -86,7 +86,7 @@ export function useDrawingInteraction(
           pendingDel.add(index)
           pendingAdd.delete(index)
         }
-        
+
         scheduleDraw()
       }
     } else if (isPanning && containerRef.value) {

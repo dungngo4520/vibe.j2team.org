@@ -30,12 +30,12 @@ const minimapRef = ref<HTMLCanvasElement | null>(null)
 const showMinimap = ref(false)
 const {
   checkedSet,
-  checkedIndices,
   togglePixel,
   setPixel,
   clearAll: clearAllState,
   importState: importStateRaw,
   exportState: exportStateRaw,
+  markDirtyAndSave,
 } = usePixelState()
 
 // Pending changes for MQTT
@@ -47,31 +47,20 @@ const { spatialGrid, rebuildSpatialGrid, updateSpatialGrid } = useSpatialGrid()
 rebuildSpatialGrid(checkedSet.value)
 
 // Instantiations
-const { zoomIndex, zoom, zoomIn, zoomOut, resetZoom, fitToScreen, handleKeyboard, handleWheel } = useZoomControls(
-  containerRef,
-  () => draw(),
-  () => drawMinimap(),
-  showMinimap
-)
+const { zoomIndex, zoom, zoomIn, zoomOut, resetZoom, fitToScreen, handleKeyboard, handleWheel } =
+  useZoomControls(
+    containerRef,
+    () => draw(),
+    () => drawMinimap(),
+    showMinimap,
+  )
 
 const { draw } = useCanvasRenderer(canvasRef, containerRef, zoom, checkedSet, spatialGrid)
 
-const {
-  drawMinimap,
-  handleMinimapPointerDown,
-  handleMinimapPointerMove,
-  handleMinimapPointerUp,
-} = useMinimap(minimapRef, containerRef, zoom, checkedSet, spatialGrid, showMinimap)
+const { drawMinimap, handleMinimapPointerDown, handleMinimapPointerMove, handleMinimapPointerUp } =
+  useMinimap(minimapRef, containerRef, zoom, checkedSet, spatialGrid, showMinimap)
 
-// We need to inject the real showMinimap ref into zoom controls if possible, but the wrapper functions already use it
-// Wait, useZoomControls takes the showMinimap ref, so let's properly pass it.
-
-const {
-  isDrawMode,
-  handlePointerDown,
-  handlePointerMove,
-  handlePointerUp,
-} = useDrawingInteraction(
+const { isDrawMode, handlePointerDown, handlePointerMove, handlePointerUp } = useDrawingInteraction(
   containerRef,
   zoom,
   togglePixel,
@@ -82,7 +71,7 @@ const {
     if (showMinimap.value) drawMinimap()
   },
   pendingAdd,
-  pendingDel
+  pendingDel,
 )
 
 const { isConnected, syncCount } = useMqttSync(
@@ -94,18 +83,8 @@ const { isConnected, syncCount } = useMqttSync(
   },
   pendingAdd,
   pendingDel,
-  () => {
-    // schedule save
-    checkedIndices.value = Array.from(checkedSet.value)
-  }
+  markDirtyAndSave,
 )
-
-// Since we passed `{ value: checkedSet.value }` to MqttSync which isn't reactive, 
-// wait, MqttSync does `checkedSet.value = currentSet`
-// That means I should pass `checkedSet` directly.
-// Let's modify MqttSync call
-// Actually `useMqttSync` takes `{ value: Set<number> }`. `checkedSet` is a `ShallowRef<Set<number>>`.
-// So passing `checkedSet` is correct!
 
 // Scroll Handling
 let scrollTimeout: number | null = null
@@ -122,7 +101,7 @@ onMounted(() => {
   window.addEventListener('keydown', handleKeyboard)
   window.addEventListener('wheel', handleWheel, { passive: false })
   window.addEventListener('resize', draw)
-  
+
   // Initial draw
   requestAnimationFrame(() => draw())
 })
@@ -138,7 +117,7 @@ const { copy, copied } = useClipboard()
 
 function exportState() {
   const indices = exportStateRaw()
-  const code = encodeRLE(indices)
+  const code = encodeRLE(indices, 500000)
   copy(code)
 }
 
@@ -194,63 +173,103 @@ function clearAll() {
 </script>
 
 <template>
-  <div class="relative w-full h-[100dvh] bg-bg-deep text-text-primary overflow-hidden font-body flex flex-col">
+  <div
+    class="relative w-full h-[100dvh] bg-bg-deep text-text-primary overflow-hidden font-body flex flex-col"
+  >
     <!-- Header -->
-    <header class="absolute top-0 left-0 right-0 z-10 flex flex-wrap items-center justify-between gap-2 p-2 sm:p-4 bg-bg-surface/80 backdrop-blur-md border-b border-border-default shadow-sm pointer-events-none">
+    <header
+      class="absolute top-0 left-0 right-0 z-10 flex flex-wrap items-center justify-between gap-2 p-2 sm:p-4 bg-bg-surface/80 backdrop-blur-md border-b border-border-default shadow-sm pointer-events-none"
+    >
       <div class="flex items-center gap-2 sm:gap-3">
-        <h1 class="text-lg sm:text-xl font-display font-bold text-accent-coral flex items-center gap-1 sm:gap-2 shrink-0">
+        <h1
+          class="text-lg sm:text-xl font-display font-bold text-accent-coral flex items-center gap-1 sm:gap-2 shrink-0"
+        >
           <Icon icon="lucide:check-square" class="size-5 sm:size-6 shrink-0" />
           <span class="hidden sm:inline whitespace-nowrap">1 Billion Checkboxes</span>
           <span class="sm:hidden whitespace-nowrap">1B Checkboxes</span>
         </h1>
-        <div class="px-2 py-1 rounded bg-bg-elevated text-[10px] sm:text-xs font-mono text-text-secondary border border-border-default flex items-center gap-1.5 shrink-0">
-          <div :class="['size-1.5 sm:size-2 rounded-full', isConnected ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500 animate-pulse']"></div>
+        <div
+          class="px-2 py-1 rounded bg-bg-elevated text-[10px] sm:text-xs font-mono text-text-secondary border border-border-default flex items-center gap-1.5 shrink-0"
+        >
+          <div
+            :class="[
+              'size-1.5 sm:size-2 rounded-full',
+              isConnected
+                ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]'
+                : 'bg-red-500 animate-pulse',
+            ]"
+          ></div>
           {{ isConnected ? 'Live' : 'Connecting' }}
         </div>
-        <div v-if="syncCount > 0" class="text-[10px] sm:text-xs text-accent-amber animate-pulse whitespace-nowrap">
+        <div
+          v-if="syncCount > 0"
+          class="text-[10px] sm:text-xs text-accent-amber animate-pulse whitespace-nowrap"
+        >
           Sync ({{ syncCount }})
         </div>
       </div>
-      
+
       <div class="flex items-center gap-1 sm:gap-2 pointer-events-auto">
         <div class="bg-bg-elevated rounded-lg p-0.5 sm:p-1 border border-border-default flex">
-          <button 
-            @click="isDrawMode = false" 
-            :class="['px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors flex items-center gap-1 sm:gap-1.5', !isDrawMode ? 'bg-accent-coral text-white' : 'text-text-secondary hover:text-text-primary']"
+          <button
+            @click="isDrawMode = false"
+            :class="[
+              'px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors flex items-center gap-1 sm:gap-1.5',
+              !isDrawMode
+                ? 'bg-accent-coral text-white'
+                : 'text-text-secondary hover:text-text-primary',
+            ]"
           >
             <Icon icon="lucide:hand" class="size-3 sm:size-4" />
             <span class="hidden sm:inline">Pan</span>
           </button>
-          <button 
-            @click="isDrawMode = true" 
-            :class="['px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors flex items-center gap-1 sm:gap-1.5', isDrawMode ? 'bg-accent-coral text-white' : 'text-text-secondary hover:text-text-primary']"
+          <button
+            @click="isDrawMode = true"
+            :class="[
+              'px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors flex items-center gap-1 sm:gap-1.5',
+              isDrawMode
+                ? 'bg-accent-coral text-white'
+                : 'text-text-secondary hover:text-text-primary',
+            ]"
           >
             <Icon icon="lucide:pen-tool" class="size-3 sm:size-4" />
             <span class="hidden sm:inline">Draw</span>
           </button>
         </div>
-        
+
         <div class="w-px h-6 sm:h-8 bg-border-default mx-0.5 sm:mx-1"></div>
-        
-        <button @click="exportState" class="p-1.5 sm:p-2 rounded-lg bg-bg-elevated hover:bg-bg-surface border border-border-default transition-colors text-text-secondary hover:text-text-primary" title="Export State">
+
+        <button
+          @click="exportState"
+          class="p-1.5 sm:p-2 rounded-lg bg-bg-elevated hover:bg-bg-surface border border-border-default transition-colors text-text-secondary hover:text-text-primary"
+          title="Export State"
+        >
           <Icon :icon="copied ? 'lucide:check' : 'lucide:download'" class="size-4 sm:size-5" />
         </button>
-        <button @click="importState" class="p-1.5 sm:p-2 rounded-lg bg-bg-elevated hover:bg-bg-surface border border-border-default transition-colors text-text-secondary hover:text-text-primary" title="Import State">
+        <button
+          @click="importState"
+          class="p-1.5 sm:p-2 rounded-lg bg-bg-elevated hover:bg-bg-surface border border-border-default transition-colors text-text-secondary hover:text-text-primary"
+          title="Import State"
+        >
           <Icon icon="lucide:upload" class="size-4 sm:size-5" />
         </button>
-        <button @click="clearAll" class="p-1.5 sm:p-2 rounded-lg bg-bg-elevated hover:bg-red-500/20 border border-border-default transition-colors text-text-secondary hover:text-red-400" title="Clear All">
+        <button
+          @click="clearAll"
+          class="p-1.5 sm:p-2 rounded-lg bg-bg-elevated hover:bg-red-500/20 border border-border-default transition-colors text-text-secondary hover:text-red-400"
+          title="Clear All"
+        >
           <Icon icon="lucide:trash-2" class="size-4 sm:size-5" />
         </button>
       </div>
     </header>
 
     <!-- Main Canvas Container -->
-    <main 
+    <main
       ref="containerRef"
       class="flex-1 w-full h-full overflow-auto overscroll-none outline-none"
       :class="{
         'cursor-grab active:cursor-grabbing': !isDrawMode,
-        'cursor-crosshair touch-none': isDrawMode
+        'cursor-crosshair touch-none': isDrawMode,
       }"
       tabindex="0"
       @scroll="handleScroll"
@@ -259,11 +278,11 @@ function clearAll() {
       @pointerup="handlePointerUp"
       @pointerleave="handlePointerUp"
     >
-      <div 
+      <div
         class="relative bg-bg-deep origin-top-left"
         :style="{
-          width: `${31622 * 16 * zoom}px`,
-          height: `${Math.ceil(TOTAL_CHECKBOXES / 31622) * 16 * zoom}px`
+          width: `${COLS * CELL_SIZE * zoom}px`,
+          height: `${Math.ceil(TOTAL_CHECKBOXES / COLS) * CELL_SIZE * zoom}px`,
         }"
       >
         <!-- The canvas itself is fixed size equal to viewport, we just draw what's visible -->
@@ -271,26 +290,26 @@ function clearAll() {
     </main>
 
     <!-- Canvas layer (fixed position overlay that we draw to) -->
-    <canvas 
-      ref="canvasRef" 
-      class="absolute inset-0 pointer-events-none z-0"
-    ></canvas>
+    <canvas ref="canvasRef" class="absolute inset-0 pointer-events-none z-0"></canvas>
 
     <!-- Controls Overlay -->
-    <div class="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 z-20 flex flex-col items-end gap-2 sm:gap-4 pointer-events-none max-w-[calc(100vw-2rem)]">
-      
+    <div
+      class="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 z-20 flex flex-col items-end gap-2 sm:gap-4 pointer-events-none max-w-[calc(100vw-2rem)]"
+    >
       <!-- Minimap Container -->
-      <div 
+      <div
         v-show="showMinimap"
         class="bg-bg-surface border border-border-default rounded-lg shadow-xl overflow-hidden pointer-events-auto"
       >
-        <div class="bg-bg-elevated px-3 py-1.5 text-xs font-mono text-text-secondary border-b border-border-default flex justify-between items-center">
+        <div
+          class="bg-bg-elevated px-3 py-1.5 text-xs font-mono text-text-secondary border-b border-border-default flex justify-between items-center"
+        >
           <span>Minimap</span>
           <button @click="showMinimap = false" class="hover:text-text-primary">
             <Icon icon="lucide:x" class="size-3" />
           </button>
         </div>
-        <canvas 
+        <canvas
           ref="minimapRef"
           :width="MINIMAP_SIZE"
           :height="MINIMAP_SIZE"
@@ -303,36 +322,57 @@ function clearAll() {
       </div>
 
       <!-- Zoom Controls -->
-      <div class="flex items-center gap-1 sm:gap-2 bg-bg-surface/90 backdrop-blur border border-border-default rounded-lg p-1 shadow-lg pointer-events-auto overflow-x-auto overscroll-x-contain touch-pan-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden max-w-full">
-        <button 
-          @click="showMinimap = !showMinimap" 
+      <div
+        class="flex items-center gap-1 sm:gap-2 bg-bg-surface/90 backdrop-blur border border-border-default rounded-lg p-1 shadow-lg pointer-events-auto overflow-x-auto overscroll-x-contain touch-pan-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden max-w-full"
+      >
+        <button
+          @click="showMinimap = !showMinimap"
           class="p-1.5 sm:p-2 rounded hover:bg-bg-elevated transition-colors text-text-secondary shrink-0"
           :class="{ 'text-accent-sky bg-accent-sky/10': showMinimap }"
           title="Toggle Minimap"
         >
           <Icon icon="lucide:map" class="size-4 sm:size-5" />
         </button>
-        
+
         <div class="w-px h-5 sm:h-6 bg-border-default mx-0.5 sm:mx-1 shrink-0"></div>
-        
-        <button @click="zoomOut" class="p-1.5 sm:p-2 rounded hover:bg-bg-elevated transition-colors text-text-secondary hover:text-text-primary shrink-0" :disabled="zoomIndex === 0">
+
+        <button
+          @click="zoomOut"
+          class="p-1.5 sm:p-2 rounded hover:bg-bg-elevated transition-colors text-text-secondary hover:text-text-primary shrink-0"
+          :disabled="zoomIndex === 0"
+        >
           <Icon icon="lucide:minus" class="size-4 sm:size-5" />
         </button>
-        
-        <div class="px-1 sm:px-2 text-xs sm:text-sm font-mono font-medium text-text-primary min-w-[3.5rem] sm:min-w-[4rem] text-center shrink-0" title="Zoom Level">
+
+        <div
+          class="px-1 sm:px-2 text-xs sm:text-sm font-mono font-medium text-text-primary min-w-[3.5rem] sm:min-w-[4rem] text-center shrink-0"
+          title="Zoom Level"
+        >
           {{ Number((zoom * 100).toFixed(2)) }}%
         </div>
-        
-        <button @click="zoomIn" class="p-1.5 sm:p-2 rounded hover:bg-bg-elevated transition-colors text-text-secondary hover:text-text-primary shrink-0" :disabled="zoomIndex === ZOOM_LEVELS.length - 1">
+
+        <button
+          @click="zoomIn"
+          class="p-1.5 sm:p-2 rounded hover:bg-bg-elevated transition-colors text-text-secondary hover:text-text-primary shrink-0"
+          :disabled="zoomIndex === ZOOM_LEVELS.length - 1"
+        >
           <Icon icon="lucide:plus" class="size-4 sm:size-5" />
         </button>
-        
+
         <div class="w-px h-5 sm:h-6 bg-border-default mx-0.5 sm:mx-1 shrink-0"></div>
-        
-        <button @click="resetZoom" class="p-1.5 sm:p-2 rounded hover:bg-bg-elevated transition-colors text-text-secondary hover:text-text-primary shrink-0" title="Reset Zoom">
+
+        <button
+          @click="resetZoom"
+          class="p-1.5 sm:p-2 rounded hover:bg-bg-elevated transition-colors text-text-secondary hover:text-text-primary shrink-0"
+          title="Reset Zoom"
+        >
           <Icon icon="lucide:zoom-in" class="size-4 sm:size-5" />
         </button>
-        <button @click="fitToScreen" class="p-1.5 sm:p-2 rounded hover:bg-bg-elevated transition-colors text-text-secondary hover:text-text-primary shrink-0" title="Fit to Screen">
+        <button
+          @click="fitToScreen"
+          class="p-1.5 sm:p-2 rounded hover:bg-bg-elevated transition-colors text-text-secondary hover:text-text-primary shrink-0"
+          title="Fit to Screen"
+        >
           <Icon icon="lucide:maximize" class="size-4 sm:size-5" />
         </button>
       </div>

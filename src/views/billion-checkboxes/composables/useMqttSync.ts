@@ -1,4 +1,4 @@
-import { ref, onBeforeUnmount, type ShallowRef } from 'vue'
+import { ref, onBeforeUnmount, triggerRef, type ShallowRef } from 'vue'
 import { useScriptTag, useIntervalFn } from '@vueuse/core'
 import { MQTT_TOPIC, MQTT_BROKER, SYNC_INTERVAL_MS } from '../constants/gridConfig'
 import { encodeRLE, decodeRLE } from '../utils/compression'
@@ -18,34 +18,34 @@ export function useMqttSync(
   scheduleDraw: () => void,
   pendingAdd: Set<number>,
   pendingDel: Set<number>,
-  scheduleSave: () => void
+  scheduleSave: () => void,
 ) {
   let mqttClient: MqttClient | null = null
   const isConnected = ref(false)
   const syncCount = ref(0)
-  
+
   const ownClientId = Math.random().toString(36).substring(2, 15)
 
-  useScriptTag('https://unpkg.com/mqtt/dist/mqtt.min.js', () => {
+  useScriptTag('https://unpkg.com/mqtt@5.15.0/dist/mqtt.min.js', () => {
     // @ts-expect-error loading from cdn
     mqttClient = mqtt.connect(MQTT_BROKER, {
       keepalive: 30,
       reconnectPeriod: 1000,
       connectTimeout: 30 * 1000,
     })
-    
+
     mqttClient!.on('connect', () => {
       isConnected.value = true
       mqttClient!.subscribe(MQTT_TOPIC)
     })
-    
+
     mqttClient!.on('message', (topic: unknown, message: unknown) => {
       try {
         const payload = JSON.parse((message as { toString: () => string }).toString())
         if (payload.client_id === ownClientId) return // Ignore own messages
 
         let hasChanges = false
-        const currentSet = new Set(checkedSet.value)
+        const currentSet = checkedSet.value
 
         // Process additions
         if (payload.add && payload.add.length > 0) {
@@ -72,11 +72,11 @@ export function useMqttSync(
         }
 
         if (hasChanges) {
-          checkedSet.value = currentSet
+          triggerRef(checkedSet)
           scheduleSave()
           scheduleDraw()
           syncCount.value++
-          
+
           // Reset sync counter after animation
           setTimeout(() => {
             if (syncCount.value > 0) syncCount.value--

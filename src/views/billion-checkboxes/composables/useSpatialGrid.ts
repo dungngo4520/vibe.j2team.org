@@ -1,4 +1,4 @@
-import { COLS, GRID_SIZE, GRID_COLS } from '../constants/gridConfig'
+import { COLS, GRID_CELL_SIZE, GRID_COLS } from '../constants/gridConfig'
 
 /**
  * Spatial grid composable for fast empty region detection
@@ -15,8 +15,8 @@ export function useSpatialGrid() {
     for (const index of checkedSet) {
       const row = Math.floor(index / COLS)
       const col = index % COLS
-      const gridRow = Math.floor(row / GRID_SIZE)
-      const gridCol = Math.floor(col / GRID_SIZE)
+      const gridRow = Math.floor(row / GRID_CELL_SIZE)
+      const gridCol = Math.floor(col / GRID_CELL_SIZE)
       const gridIndex = gridRow * GRID_COLS + gridCol
       spatialGrid.set(gridIndex, (spatialGrid.get(gridIndex) || 0) + 1)
     }
@@ -28,8 +28,8 @@ export function useSpatialGrid() {
   function updateSpatialGrid(index: number, isAdding: boolean) {
     const row = Math.floor(index / COLS)
     const col = index % COLS
-    const gridRow = Math.floor(row / GRID_SIZE)
-    const gridCol = Math.floor(col / GRID_SIZE)
+    const gridRow = Math.floor(row / GRID_CELL_SIZE)
+    const gridCol = Math.floor(col / GRID_CELL_SIZE)
     const gridIndex = gridRow * GRID_COLS + gridCol
 
     const count = spatialGrid.get(gridIndex) || 0
